@@ -1,0 +1,3 @@
+[deps]
+BigWigSummary = "7d082a81-8237-4692-9c6f-eb5a0bd5975b"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
