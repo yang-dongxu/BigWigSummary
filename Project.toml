@@ -3,6 +3,14 @@ uuid = "7d082a81-8237-4692-9c6f-eb5a0bd5975b"
 authors = ["Dongxu Yang"]
 version = "1.0.0-DEV"
 
+[deps]
+BBI = "19670fab-07f0-5a41-99c5-c090d774ee27"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+BigWig = "9d649c22-cb6b-11e8-1fa9-f3896fced444"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+GenomicFeatures = "899a7d2d-5c61-547b-bef9-6698a8d05446"
+LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
+
 [compat]
 julia = "1.9"
 

@@ -6,5 +6,8 @@
 [![Coverage](https://codecov.io/gh/yang-dongxu/BigWigSummary.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/yang-dongxu/BigWigSummary.jl)
 
 
-Julia package for summary of bigwig files, wrapped from [libBigWig](https://github.com/dpryan79/libBigWig)
+<!-- Julia package for summary of bigwig files, wrapped from [libBigWig](https://github.com/dpryan79/libBigWig) -->
+
+summary bigwig files in region supplied by DataFrame
+
 
