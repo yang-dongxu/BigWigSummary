@@ -37,8 +37,8 @@ end
 
 function mean_n(
     reader::BigWig.Reader, 
-    chrom::AbstractString, chromstart::Integer, chromend::Integer, n::Int = 1;
-    strand::Union{Char,Symbol} = '+', zoom::Bool = false
+    chrom::AbstractString, chromstart::Integer, chromend::Integer, strand::Union{Char,Symbol} = '+'; 
+    n::Int = 1, zoom::Bool = false
     )::Array{Union{Float32,Missing}}
     @assert n >= 1
     @assert chromstart <= chromend
@@ -51,13 +51,13 @@ function mean_n(
         if zoom
             zooms = BBI.find_best_zoom(reader.zooms, Int64(chromend - chromstart))
             if zooms !== nothing
-                v = mean_n_2(zooms, Int64(chromid), Int64(chromstart), Int64(chromend), n; strand=strand)
+                v = mean_n_2(zooms, Int64(chromid), Int64(chromstart), Int64(chromend), strand, n=n)
                 # println("zoom")
             else
-                v = mean_n_2(reader, Int64(chromid), Int64(chromstart), Int64(chromend), n; strand=strand)
+                v = mean_n_2(reader, Int64(chromid), Int64(chromstart), Int64(chromend), strand, n=n)
             end
         else
-            v = mean_n_2(reader, Int64(chromid), Int64(chromstart), Int64(chromend), n; strand=strand)
+            v = mean_n_2(reader, Int64(chromid), Int64(chromstart), Int64(chromend), strand, n=n)
         end
     end
     return v
@@ -66,7 +66,7 @@ end
 function mean_n_2(
     handler::Union{BigWig.Reader,BBI.Zoom},
     chromid::Int64, chromstart::Int64, chromend::Int64,
-    n::Int = 1; strand::Union{Char,Symbol} = '+'
+    strand::Union{Char,Symbol} = '+'; n::Int = 1
 )::Array{Union{Float32,Missing}}
     if typeof(handler) <: BigWig.Reader
         method = BigWig.OverlapIterator
@@ -118,4 +118,26 @@ function mean_n_2(
         reverse!(sums)
     end
     return sums    
+end
+
+
+function Base.summary(
+    reader :: BigWig.Reader
+)::Dict{String,Float32}
+"""
+    Summary of a bigwig file
+    # Arguments
+        reader: BigWig.Reader
+    # Returns
+        Dict{String,Float32}
+        chrom ==> mean
+"""
+    d = Dict{String,Float32}()
+    mean_all = reader.summary.sum / reader.summary.cov
+    d["all"] = mean_all
+    for (chrom, chrominfo) in reader.chroms
+        mean_chrom = BigWig.mean(reader, chrom, 1, chrominfo[2], usezoom=true)
+        d[chrom] = mean_chrom
+    end
+    return d
 end
