@@ -1,6 +1,7 @@
 import BBI
 using BigWig 
 using LoopVectorization
+using GenomicFeatures: Strand
 
 function read(bwfile::AbstractString)::BigWig.Reader
     return BigWig.Reader(BigWig.open(bwfile))
@@ -37,12 +38,13 @@ end
 
 function mean_n(
     reader::BigWig.Reader, 
-    chrom::AbstractString, chromstart::Integer, chromend::Integer, strand::Union{Char,Symbol} = '+'; 
+    chrom::AbstractString, chromstart::Integer, chromend::Integer, strand::Union{Strand,Symbol,Char} = Strand('+'); 
     n::Int = 1, zoom::Bool = false
     )::Array{Union{Float32,Missing}}
     @assert n >= 1
     @assert chromstart <= chromend
     @assert n <= chromend - chromstart
+    strand = convert(Strand,strand)
     chromid = reader.chroms[chrom][1]
 
     if n == 1
@@ -66,7 +68,7 @@ end
 function mean_n_2(
     handler::Union{BigWig.Reader,BBI.Zoom},
     chromid::Int64, chromstart::Int64, chromend::Int64,
-    strand::Union{Char,Symbol} = '+'; n::Int = 1
+    strand::Union{Strand,Symbol,Char} = Strand('+'); n::Int = 1
 )::Array{Union{Float32,Missing}}
     if typeof(handler) <: BigWig.Reader
         method = BigWig.OverlapIterator
@@ -79,7 +81,6 @@ function mean_n_2(
     @assert n >  1
     @assert chromstart <= chromend
     @assert n <= chromend - chromstart
-    @assert strand in ['+',:pos,:forward,'-',:neg,:reverse]
 
     # println("chromstart: $chromstart, chromend: $chromend, n: $n")
     sums = zeros(Union{Float32,Missing},n)
@@ -114,7 +115,9 @@ function mean_n_2(
             sums[i] = missing
         end
     end
-    if strand in ['-',:neg,:reverse]
+    strand = convert(Strand,strand)
+
+    if isneg(strand)
         reverse!(sums)
     end
     return sums    

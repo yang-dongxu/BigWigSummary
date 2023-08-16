@@ -37,18 +37,38 @@ function process_scale(reader::BigWig.Reader, chroms::Array{String}, scale::Unio
     
 end
 
+function process_inherit(df_region::DataFrame, cols::Union{Symbol, Vector{Symbol}})::Vector{String}
+
+    if cols == :all
+        inherit_cols = names(df_region)
+    elseif cols == :none
+        inherit_cols = String[]
+    else
+        inherit_cols = cols
+    end
+
+    cols_inherit = intersect(names(df_region), inherit_cols)
+    # logging
+    cols_not_inherit = setdiff(names(df_region), inherit_cols)
+    if !isempty(cols_not_inherit)
+        println("cols not inherit: ", cols_not_inherit)
+    end
+    return cols_inherit
+end
+
 function get_signal(
     reader::BigWig.Reader,
     df_region::DataFrame, 
     n::Int = 1,
     args...;
+    width::Int = -1,
     usezoom::Bool = false,
     bystrand::Bool = true,
     chrom_col::Union{Symbol,String} = :chrom,
     start_col::Union{Symbol,String} = :start,
     end_col::Union{Symbol,String} = :end,
     strand_col::Union{Symbol,String} = :strand,
-    inherit_cols::Vector{Symbol} = Array{Symbol}([:chrom, :start, :end, :strand,:name,:id]),
+    inherit_cols::Union{Symbol,Vector{Symbol}} = Array{Symbol}([:chrom, :start, :end, :strand,:name,:id]),
     prefix::String = "bin_",
     missing_as::Union{Float32, Missing} = missing,
     scale::Union{Bool, String, Symbol} = false,
@@ -71,7 +91,13 @@ function get_signal(
         strands = fill('+', length(chroms))
     end
 
-
+    if width > 0
+        w = width ÷ 2
+        center = (starts .+ ends) .÷ 2
+        starts = center .- w
+        starts = max.(starts, 0)
+        ends = center .+ w
+    end
 
     values = Array{Union{Float32, Missing},2}(missing, (n,length(chroms), ))
 
@@ -114,12 +140,7 @@ function get_signal(
 
     
     # filter out cols not exists in inherit_cols
-    cols_inherit = intersect(names(df_region), inherit_cols)
-    # logging
-    cols_not_inherit = setdiff(names(df_region), inherit_cols)
-    if !isempty(cols_not_inherit)
-        println("cols not inherit: ", cols_not_inherit)
-    end
+    cols_inherit = process_inherit(df_region, inherit_cols)
     # merge
     df_signal = hcat(df_region[:, cols_inherit], df_signal)
 
@@ -127,22 +148,96 @@ function get_signal(
     return df_signal
 end
 
-function get_signal(
-    reader::BigWig.Reader, df_region::DataFrame,
-    args...;
-    inherit_cols::Union{Symbol,Vector{Symbol}} = :all,
-    kwargs...
+# function get_signal(
+#     reader::BigWig.Reader, df_region::DataFrame,
+#     args...;
+#     inherit_cols::Symbol = :all,
+#     kwargs...
     
-)
-    @assert inherit_cols in [:all, :none]
-    if inherit_cols == :all
-        inherit_cols = names(df_region)
-    else
-        inherit_cols = Symbol[]
-    end
-    return get_signal(
-        reader::BigWig.Reader,df_region::DataFrame, args...;
-        inherit_cols = inherit_cols,
-        kwargs...
+# )
+#     @assert inherit_cols in [:all, :none]
+#     if inherit_cols == :all
+#         inherit_cols = names(df_region)
+#     else
+#         inherit_cols = Symbol[]
+#     end
+#     return get_signal(
+#         reader::BigWig.Reader,df_region::DataFrame, args...;
+#         inherit_cols = inherit_cols,
+#         kwargs...
+#     )
+# end
+
+
+function get_signal_flank(
+    reader::BigWig.Reader, df_region::DataFrame,
+    n5::Int = 1, n::Int=1, n3::Int = 1; 
+    left::Int = 2000, right::Int = 2000, bystrand = true, 
+    chrom_col::Union{Symbol,String} = :chrom,
+    start_col::Union{Symbol,String} = :start,
+    end_col::Union{Symbol,String} = :end,
+    strand_col::Union{Symbol,String} = :strand,
+    prefix::String = "bin_",
+    kwargs...
     )
+    @assert n5 >= 0
+    @assert n3 >= 0
+    @assert n >= 1
+    
+
+
+    kwargs = Dict(kwargs)
+    kwargs[:width] = -1
+
+    df_c = get_signal(
+        reader, df_region, n; 
+        bystrand = bystrand, 
+        chrom_col = chrom_col,
+        start_col = start_col,
+        end_col = end_col,
+        strand_col = strand_col,
+        prefix = "$(prefix)body_",
+        kwargs...
+        )
+
+    if n5 == 0 && n3 == 0
+        return df_c
+    end
+
+    if n5 != 0 
+        df_l = to_interval(df_region; chrom_col = chrom_col, start_col = start_col, end_col = start_col, strand_col = strand_col) |> x-> resize(x, -left; fix = :_5, bystrand = bystrand) |> to_df
+        df_5 = get_signal(
+            reader, df_l, n5; 
+            bystrand = bystrand, 
+            chrom_col = chrom_col,
+            start_col = start_col,
+            end_col = end_col,
+            strand_col = strand_col,
+            prefix = "$(prefix)5w$(left)_",
+            kwargs...
+            )
+        df_c_n = hcat(df_5, df_c[!,Regex("$(prefix)body_.*")])
+        df_c_n[!,chrom_col] = df_c[!,chrom_col]
+        df_c_n[!,start_col] = df_c[!,start_col]
+        df_c_n[!,end_col] = df_c[!,end_col]
+        df_c_n[!,strand_col] = df_c[!,strand_col]
+        df_c = df_c_n
+
+    end
+    if n3 != 0
+        df_r = to_interval(df_region; chrom_col = chrom_col, start_col = end_col, end_col = end_col, strand_col = strand_col) |> x-> resize(x, right; fix = :_3, bystrand = bystrand) |> to_df
+        df_3 = get_signal(
+            reader, df_r, n3; 
+            bystrand = bystrand, 
+            chrom_col = chrom_col,
+            start_col = start_col,
+            end_col = end_col,
+            strand_col = strand_col,
+            prefix = "$(prefix)3w$(right)_",
+            kwargs...
+            )
+        df_c = hcat(df_c,df_3[!,Regex("$(prefix)3w.*")])
+    end
+    return df_c
+
 end
