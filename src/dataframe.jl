@@ -80,13 +80,13 @@ function get_signal(
     @assert String(start_col) in names(df_region)
     @assert String(end_col) in names(df_region)
 
-    chroms = df_region[!, chrom_col]
-    starts = df_region[!, start_col]
-    ends = df_region[!, end_col]
+    chroms = df_region[:, chrom_col]
+    starts = df_region[:, start_col]
+    ends = df_region[:, end_col]
 
     if bystrand
         @assert String(strand_col) in names(df_region)
-        strands = df_region[!, strand_col]
+        strands = df_region[:, strand_col]
     else
         strands = fill('+', length(chroms))
     end
@@ -205,7 +205,13 @@ function get_signal_flank(
     end
 
     if n5 != 0 
-        df_l = to_interval(df_region; chrom_col = chrom_col, start_col = start_col, end_col = start_col, strand_col = strand_col) |> x-> resize(x, -left; fix = :_5, bystrand = bystrand) |> to_df
+        df_l = begin 
+            to_interval(df_region; chrom_col = chrom_col, start_col = start_col, end_col = end_col, strand_col = strand_col) |> 
+            x -> GenomicFeatures.IntervalCollection(x, true) |> 
+            x-> resize(x, left; fix = :_5, bystrand = bystrand, bydirection = true) |> 
+            to_df
+        end
+
         df_5 = get_signal(
             reader, df_l, n5; 
             bystrand = bystrand, 
@@ -216,16 +222,21 @@ function get_signal_flank(
             prefix = "$(prefix)5w$(left)_",
             kwargs...
             )
+
         df_c_n = hcat(df_5, df_c[!,Regex("$(prefix)body_.*")])
-        df_c_n[!,chrom_col] = df_c[!,chrom_col]
-        df_c_n[!,start_col] = df_c[!,start_col]
-        df_c_n[!,end_col] = df_c[!,end_col]
-        df_c_n[!,strand_col] = df_c[!,strand_col]
+        df_c_n[:,chrom_col] = df_c[:,chrom_col]
+        df_c_n[:,start_col] = df_c[:,start_col]
+        df_c_n[:,end_col] = df_c[:,end_col]
+        df_c_n[:,strand_col] = df_c[:,strand_col]
         df_c = df_c_n
 
     end
     if n3 != 0
-        df_r = to_interval(df_region; chrom_col = chrom_col, start_col = end_col, end_col = end_col, strand_col = strand_col) |> x-> resize(x, right; fix = :_3, bystrand = bystrand) |> to_df
+        df_r = begin 
+            to_interval(df_region; chrom_col = chrom_col, start_col = end_col, end_col = end_col, strand_col = strand_col) |> 
+            x-> resize(x, right; fix = :_3, bystrand = bystrand, bydirection = true) |> 
+            to_df
+        end
         df_3 = get_signal(
             reader, df_r, n3; 
             bystrand = bystrand, 
