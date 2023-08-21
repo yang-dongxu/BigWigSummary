@@ -4,7 +4,7 @@ module BigWigSummary
 include("strand.jl")
 include("interval.jl")
 include("bigwig.jl")
-include("dataframe.jl")
-
+include("df_bigwig.jl")
+include("df_overlap.jl")
 
 end
