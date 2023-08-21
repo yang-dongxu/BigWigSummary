@@ -165,6 +165,7 @@ end
 
 function to_df(intervals::IntervalCollection; sync::Bool = true,  chrom_col::Union{Symbol,String} = :chrom, start_col::Union{Symbol,String} = :start, end_col::Union{Symbol,String} = :end, strand_col::Union{Symbol,String} = :strand)::DataFrame
     s = Array{DataFrameRow{DataFrame, DataFrames.Index}}(undef, length(intervals))
+
     for (i,v) in enumerate(intervals)
         s[i] = v.metadata
         if sync
@@ -174,11 +175,16 @@ function to_df(intervals::IntervalCollection; sync::Bool = true,  chrom_col::Uni
             s[i][strand_col] = v.strand
         end
     end
-    return DataFrame(s)
+
+    df = DataFrame()
+    for c in names(s[1])
+        df[!,Symbol(c)] = map(x -> x[c], s)
+    end
+    return df
 end
 
 function to_df(
     intervals::Vector{GenomicFeatures.Interval{DataFrameRow{DataFrame, DataFrames.Index}}};kwargs...
     )
-    return to_df(IntervalCollection(intervals), kwargs...)
+    return to_df(IntervalCollection(intervals, true), kwargs...)
 end
