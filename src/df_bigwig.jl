@@ -2,7 +2,7 @@
 using DataFrames
 summary = Base.summary
 
-function process_scale(reader::BigWig.Reader, chroms::Array{String}, scale::Union{Bool, String, Symbol}, values ::Array{Union{Float32, Missing},2})
+function process_scale(reader::BigWig.Reader, chroms::Array{T}, scale::Union{Bool, T, Symbol}, values ::Array{Union{Float32, Missing},2}) where T<:AbstractString
     """
     scale: Union{Bool, String, Symbol}
     true -> "global"
@@ -64,16 +64,16 @@ function get_signal(
     width::Int = -1,
     usezoom::Bool = false,
     bystrand::Bool = true,
-    chrom_col::Union{Symbol,String} = :chrom,
-    start_col::Union{Symbol,String} = :start,
-    end_col::Union{Symbol,String} = :end,
-    strand_col::Union{Symbol,String} = :strand,
+    chrom_col::Union{Symbol,T} = :chrom,
+    start_col::Union{Symbol,T} = :start,
+    end_col::Union{Symbol,T} = :end,
+    strand_col::Union{Symbol,T} = :strand,
     inherit_cols::Union{Symbol,Vector{Symbol}} = Array{Symbol}([:chrom, :start, :end, :strand,:name,:id]),
     prefix::String = "bin_",
     missing_as::Union{Float32, Missing} = missing,
-    scale::Union{Bool, String, Symbol} = false,
+    scale::Union{Bool, T, Symbol} = false,
     threads::Bool = true,
-)::DataFrame
+)::DataFrame where T <: AbstractString
     @assert length(args) == 0 "you should not pass positional arguments other than reader, df_region and bins, use keyword arguments instead (separated by ; after positional arguments). You passed in: $args"
     @assert n >= 1
     @assert String(chrom_col) in names(df_region)
@@ -173,13 +173,13 @@ function get_signal_flank(
     reader::BigWig.Reader, df_region::DataFrame,
     n5::Int = 1, n::Int=1, n3::Int = 1; 
     left::Int = 2000, right::Int = 2000, bystrand = true, 
-    chrom_col::Union{Symbol,String} = :chrom,
-    start_col::Union{Symbol,String} = :start,
-    end_col::Union{Symbol,String} = :end,
-    strand_col::Union{Symbol,String} = :strand,
+    chrom_col::Union{Symbol,T} = :chrom,
+    start_col::Union{Symbol,T} = :start,
+    end_col::Union{Symbol,T} = :end,
+    strand_col::Union{Symbol,T} = :strand,
     prefix::String = "bin_",
     kwargs...
-    )
+    ) where T <: AbstractString
     @assert n5 >= 0
     @assert n3 >= 0
     @assert n >= 1
