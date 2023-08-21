@@ -44,7 +44,7 @@ function process_inherit(df_region::DataFrame, cols::Union{Symbol, Vector{Symbol
     elseif cols == :none
         inherit_cols = String[]
     else
-        inherit_cols = cols
+        inherit_cols = [String(i) for i in cols]
     end
 
     cols_inherit = intersect(names(df_region), inherit_cols)
