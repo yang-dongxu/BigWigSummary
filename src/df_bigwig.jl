@@ -102,7 +102,7 @@ function get_signal(
     values = Array{Union{Float32, Missing},2}(missing, (n,length(chroms), ))
 
     if threads
-        Threads.@threads for i in eachindex(chroms)
+        Threads.@threads for i in collect(eachindex(chroms))
             values[:, i] = mean_n(
                 reader,
                 chroms[i],
@@ -189,6 +189,8 @@ function get_signal_flank(
     kwargs = Dict(kwargs)
     kwargs[:width] = -1
 
+    reader5 = deepcopy(reader)
+    reader3 = deepcopy(reader)
     df_c = get_signal(
         reader, df_region, n; 
         bystrand = bystrand, 
@@ -207,13 +209,12 @@ function get_signal_flank(
     if n5 != 0 
         df_l = begin 
             to_interval(df_region; chrom_col = chrom_col, start_col = start_col, end_col = end_col, strand_col = strand_col) |> 
-            x -> GenomicFeatures.IntervalCollection(x, true) |> 
             x-> resize(x, left; fix = :_5, bystrand = bystrand, bydirection = true) |> 
             to_df
         end
 
         df_5 = get_signal(
-            reader, df_l, n5; 
+            reader5, df_l, n5; 
             bystrand = bystrand, 
             chrom_col = chrom_col,
             start_col = start_col,
@@ -238,7 +239,7 @@ function get_signal_flank(
             to_df
         end
         df_3 = get_signal(
-            reader, df_r, n3; 
+            reader3, df_r, n3; 
             bystrand = bystrand, 
             chrom_col = chrom_col,
             start_col = start_col,
