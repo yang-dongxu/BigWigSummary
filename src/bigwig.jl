@@ -3,10 +3,17 @@ using BigWig
 using LoopVectorization
 using GenomicFeatures: Strand
 
-function read(bwfile::AbstractString)::BigWig.Reader
+function read(bwfile::T)::BigWig.Reader where T<:AbstractString
     return BigWig.Reader(BigWig.open(bwfile))
 end
 
+
+function read(f::Function, bwfile::T) where T<:AbstractString
+    bwf = read(bwfile)
+    v = f(bwf)
+    close(bwf)
+    return v
+end
 
 function read_intervals(
     reader::BigWig.Reader,

@@ -102,7 +102,7 @@ function get_signal(
     values = Array{Union{Float32, Missing},2}(missing, (n,length(chroms), ))
 
     if threads
-        Threads.@threads for i in collect(eachindex(chroms))
+        Threads.@threads for i in collect(1:length(chroms))
             values[:, i] = mean_n(
                 reader,
                 chroms[i],
