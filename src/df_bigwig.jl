@@ -191,6 +191,9 @@ function get_signal_flank(
 
     reader5 = deepcopy(reader)
     reader3 = deepcopy(reader)
+    df_region = deepcopy(df_region)
+    df_region[!,:region_id____] = 1:size(df_region,1)
+    sort!(df_region, :region_id____)
     df_c = get_signal(
         reader, df_region, n; 
         bystrand = bystrand, 
@@ -210,7 +213,8 @@ function get_signal_flank(
         df_l = begin 
             to_interval(df_region; chrom_col = chrom_col, start_col = start_col, end_col = end_col, strand_col = strand_col) |> 
             x-> resize(x, left; fix = :_5, bystrand = bystrand, bydirection = true) |> 
-            to_df
+            to_df |>
+            x -> sort(x, :region_id____)
         end
 
         df_5 = get_signal(
@@ -236,7 +240,8 @@ function get_signal_flank(
         df_r = begin 
             to_interval(df_region; chrom_col = chrom_col, start_col = end_col, end_col = end_col, strand_col = strand_col) |> 
             x-> resize(x, right; fix = :_3, bystrand = bystrand, bydirection = true) |> 
-            to_df
+            to_df |> 
+            x -> sort(x, :region_id____)
         end
         df_3 = get_signal(
             reader3, df_r, n3; 
@@ -250,7 +255,7 @@ function get_signal_flank(
             )
         df_c = hcat(df_c,df_3[!,Regex("$(prefix)3w.*")])
     end
-    return df_c
+    return df_c[!,Not(:region_id____)] |> deepcopy
 
 end
 
